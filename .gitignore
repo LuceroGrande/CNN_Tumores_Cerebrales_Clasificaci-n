@@ -1,0 +1,7 @@
+# Modelos entrenados
+*.h5
+*.hdf5
+*.pth
+*.pt
+models/*.h5
+models/*.pth
