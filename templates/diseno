@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Clasificación de Tumores</title>
+
+<style>
+    :root {
+        --primary: #2563eb; /* Azul Médico */
+        --primary-dark: #1e40af;
+        --bg-color: #f3f4f6;
+        --card-bg: #ffffff;
+        --text-main: #1f2937;
+        --text-secondary: #6b7280;
+        --success: #10b981;
+        --radius: 12px;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    body {
+        margin: 0;
+        font-family: system-ui, -apple-system, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-main);
+    }
+
+    /* HEADER */
+    .header {
+        background-color: var(--card-bg);
+        padding: 1.5rem 2rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: center;
+    }
+
+    .header h2 {
+        margin: 0;
+        color: var(--primary);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* CONTROLS AREA */
+    .controls {
+        background: var(--card-bg);
+        margin: 20px auto;
+        padding: 20px;
+        max-width: 1200px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+    }
+
+    input[type="file"] {
+        font-size: 14px;
+        color: var(--text-secondary);
+        padding: 8px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 6px;
+        background: #f8fafc;
+        width: 100%;
+    }
+
+    button {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    button:hover {
+        background-color: var(--primary-dark);
+    }
+
+    #status {
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-left: auto;
+    }
+
+    /* MAIN GRID */
+    .container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 20px;
+        max-width: 1240px;
+        margin: 0 auto 40px auto;
+        padding: 0 20px;
+    }
+
+    .card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        height: 550px; /* Altura fija para alineación */
+    }
+
+    .card h3 {
+        margin-top: 0;
+        color: var(--text-main);
+        font-size: 1.1rem;
+        border-bottom: 2px solid #f3f4f6;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+    }
+
+    /* RESULTS STYLING */
+    .result-box {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    #tumor {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--primary);
+        margin: 10px 0;
+        text-transform: capitalize;
+    }
+
+    /* CONFIDENCE BARS */
+    .confidence-item {
+        margin-bottom: 12px;
+    }
+    .conf-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+        font-weight: 500;
+    }
+    .progress-bg {
+        background: #e5e7eb;
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .progress-fill {
+        background: var(--primary);
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    /* IMAGE VIEWERS */
+    .image-container {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .image-container img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    .placeholder-text {
+        color: #6b7280;
+        position: absolute;
+        font-size: 0.9rem;
+    }
+
+    /* SLIDER STYLING */
+    .slider-container {
+        margin-top: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    input[type=range] {
+        width: 100%;
+        accent-color: var(--primary);
+        cursor: pointer;
+    }
+
+    .slice-badge {
+        background: var(--text-main);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        min-width: 30px;
+        text-align: center;
+    }
+
+</style>
+
+<script>
+let imgSlices = [];
+
+function cambiarSlice() {
+    let index = document.getElementById("sliceSlider").value;
+    document.getElementById("img2d").src = "data:image/png;base64," + imgSlices[index];
+    document.getElementById("sliceNumber").innerText = index;
+}
+
+function enviarCarpeta(event) {
+    event.preventDefault();
+    let formData = new FormData(document.getElementById("form"));
+    document.getElementById("status").innerText = "Procesando...";
+
+    fetch("/procesar", { method: "POST", body: formData })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+
+        // Tumor principal
+        document.getElementById("tumor").innerText = data.label;
+
+        // Guardar slices
+        imgSlices = data.img2d_slices;
+
+        // Configurar slider
+        let slider = document.getElementById("sliceSlider");
+        slider.max = imgSlices.length - 1;
+        slider.value = 0;
+        document.getElementById("sliceNumber").innerText = 0;
+
+        cambiarSlice();
+
+        // Imagen 3D
+        document.getElementById("img3d").src = "data:image/png;base64," + data.img3d;
+
+        // Mostrar confidencias
+        let confDiv = document.getElementById("confidences");
+        confDiv.innerHTML = "";
+        let table = document.createElement("table");
+        table.className = "confidence-table";
+        let header = table.insertRow();
+        header.insertCell().innerText = "Tipo de Tumor";
+        header.insertCell().innerText = "Confianza";
+
+        for (let key in data.confidences) {
+            let row = table.insertRow();
+            row.insertCell().innerText = key;
+            row.insertCell().innerText = data.confidences[key].toFixed(2);
+        }
+        confDiv.appendChild(table);
+
+        document.getElementById("status").innerText = "Listo";
+    });
+}
+</script>
+
+</head>
+
+<body>
+
+<div class="header">
+    <h2>Algoritmo de clasificación de tumores cerebrales
+mediante redes neuronales convolucionales y resonancias
+magnéticas</h2>
+</div>
+
+<div style="padding:20px;">
+    <form id="form" onsubmit="enviarCarpeta(event)" enctype="multipart/form-data">
+        <input type="file" id="folder" name="folder" webkitdirectory directory multiple>
+        <button type="submit">Procesar Carpeta</button>
+    </form>
+    <span id="status">Idle</span>
+</div>
+
+<div class="container">
+
+    <div class="panel">
+        <h3>Resultado</h3>
+        <p><b>Tipo de tumor principal:</b></p>
+        <p id="tumor">---</p>
+        <h4>Niveles de confianza:</h4>
+        <div id="confidences"></div>
+    </div>
+
+    <div class="panel">
+        <h3>Vista 2D</h3>
+        <img id="img2d" width="350">
+        <br>
+        <input type="range" id="sliceSlider" min="0" max="0" value="0" oninput="cambiarSlice()">
+        <span id="sliceNumber">0</span>
+    </div>
+
+    <div class="panel">
+        <h3>Vista 3D</h3>
+        <img id="img3d" width="350">
+    </div>
+
+</div>
+
+</body>
+</html>

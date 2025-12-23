@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Tumor Detection</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --primary: #4f46e5;      
+        --primary-hover: #4338ca;
+        --accent: #818cf8;
+        --bg-body: #f8fafc;      
+        --bg-card: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+        --radius-lg: 16px;
+        --radius-md: 10px;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+        background-color: var(--bg-body);
+        color: var(--text-main);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .navbar {
+        background: var(--bg-card);
+        padding: 1rem 2rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .brand {
+        font-weight: 800;
+        font-size: 1.25rem;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status-badge {
+        font-size: 0.85rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: var(--text-muted);
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .main-container {
+        flex: 1;
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: 2rem;
+    }
+
+    /*  ZONA DE CARGA */
+    .upload-section {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        padding: 1.5rem;
+        border: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .upload-info h1 { margin: 0; font-size: 1.5rem; }
+    .upload-info p { margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.9rem; }
+
+    .file-upload-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+    }
+
+    .btn-upload {
+        background: var(--primary);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: background 0.2s;
+        box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+    }
+    
+    .btn-upload:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+    #folder {
+        position: absolute;
+        left: 0; top: 0; opacity: 0;
+        width: 100%; height: 100%;
+        cursor: pointer;
+    }
+
+    /* CONTENEDORES */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 350px 1fr 1fr; /* Columna fija para stats, flexible para imágenes */
+        gap: 1.5rem;
+        height: 100%;
+    }
+
+    .container-card {
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: transform 0.2s ease;
+    }
+
+    /* Header de cada tarjeta */
+    .card-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: #f8fafc;
+        font-weight: 600;
+        color: var(--text-main);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /*  DIAGNÓSTICO  */
+    .diagnosis-box {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #e0e7ff 0%, #fae8ff 100%);
+        border-radius: var(--radius-md);
+    }
+
+    .diagnosis-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; }
+    #tumor { font-size: 2rem; font-weight: 800; color: var(--primary); margin: 0.5rem 0 0 0; text-transform: capitalize; }
+
+    /* Barras de Confianza */
+    .confidence-item { margin-bottom: 1rem; }
+    .conf-row { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.25rem; font-weight: 500; }
+    .bar-bg { background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden; }
+    .bar-fill { background: var(--primary); height: 100%; border-radius: 4px; width: 0%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    /* --- VISORES DE IMAGEN --- */
+    .img-viewer {
+        flex: 1;
+        background: #000;
+        border-radius: var(--radius-md);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        min-height: 300px;
+    }
+
+    /* NUEVO ESTILO 3D VOLUMETRICO */
+    .viewer-3d {
+        flex: 1;
+        border-radius: var(--radius-md);
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        min-height: 350px;
+        
+        /* FONDO: Degradado radial + Cuadrícula (Grid) */
+        background-color: #020617; /* Fondo base casi negro */
+        background-image: 
+            linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+            radial-gradient(circle at center, #1e293b 0%, #000000 120%);
+        
+        background-size: 30px 30px, 30px 30px, 100% 100%;
+        background-position: center;
+        background-blend-mode: screen; 
+        
+        border: 1px solid #334155;
+        box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+    }
+
+    .viewer-3d img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+        z-index: 2;
+        filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+    }
+
+    .img-viewer img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    .placeholder { color: #475569; font-size: 0.9rem; }
+
+    .slider-controls {
+        margin-top: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem;
+        background: #f8fafc;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+    }
+
+    input[type=range] {
+        flex: 1;
+        accent-color: var(--primary);
+        height: 6px;
+        cursor: pointer;
+    }
+
+    .slice-counter {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        color: var(--primary);
+        background: #e0e7ff;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+
+    @media (max-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr; 
+            grid-template-rows: auto;
+        }
+        .container-card { min-height: 400px; }
+    }
+</style>
+
+<script>
+let imgSlices = [];
+
+function cambiarSlice() {
+    let index = document.getElementById("sliceSlider").value;
+    if(imgSlices.length > 0){
+        document.getElementById("img2d").src = "data:image/png;base64," + imgSlices[index];
+        document.getElementById("placeholder-2d").style.display = 'none';
+    }
+    document.getElementById("sliceNumber").innerText = index;
+}
+
+function updateStatus(msg, type) {
+    let el = document.getElementById("status-badge");
+    el.innerText = msg;
+    
+    // Resetear estilos
+    el.style.background = "#f1f5f9";
+    el.style.color = "#64748b";
+
+    if(type === 'loading') {
+        el.style.background = "#fef3c7"; // Amarillo
+        el.style.color = "#d97706";
+    } else if(type === 'success') {
+        el.style.background = "#dcfce7"; // Verde
+        el.style.color = "#166534";
+    } else if(type === 'error') {
+        el.style.background = "#fee2e2"; // Rojo
+        el.style.color = "#991b1b";
+    }
+}
+
+function enviarCarpeta(event) {
+    event.preventDefault();
+    
+    let folderInput = document.getElementById("folder");
+    if(folderInput.files.length === 0) {
+        alert("Selecciona una carpeta.");
+        return;
+    }
+
+    let formData = new FormData(document.getElementById("form"));
+
+    updateStatus("Procesando...", "loading"); 
+
+    fetch("/procesar", { method: "POST", body: formData })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { 
+            alert(data.error); 
+            updateStatus("Error", "error");
+            return; 
+        }
+        renderResults(data);
+    })
+    .catch(err => {
+        console.error(err);
+        updateStatus("Error de conexión", "error");
+    });
+}
+
+function renderResults(data) {
+    document.getElementById("tumor").innerText = data.label;
+    
+    let confDiv = document.getElementById("confidences");
+    confDiv.innerHTML = "";
+    
+    let sortedKeys = Object.keys(data.confidences).sort((a,b) => data.confidences[b] - data.confidences[a]);
+    
+    sortedKeys.forEach(key => {
+        let percent = (data.confidences[key] * 100).toFixed(1);
+        let html = `
+            <div class="confidence-item">
+                <div class="conf-row">
+                    <span>${key}</span>
+                    <span>${percent}%</span>
+                </div>
+                <div class="bar-bg">
+                    <div class="bar-fill" style="width: ${percent}%"></div>
+                </div>
+            </div>
+        `;
+        confDiv.innerHTML += html;
+    });
+
+    imgSlices = data.img2d_slices;
+    let slider = document.getElementById("sliceSlider");
+    slider.max = imgSlices.length - 1;
+    slider.value = Math.floor(imgSlices.length / 2);
+    cambiarSlice(); 
+
+    document.getElementById("img3d").src = "data:image/png;base64," + data.img3d;
+    document.getElementById("placeholder-3d").style.display = 'none';
+
+    updateStatus("Listo", "success");
+}
+</script>
+</head>
+
+<body>
+
+<nav class="navbar">
+    <div class="brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+        Algoritmo de clasificación de tumores cerebrales mediante redes neuronales convolucionales y resonancias magnéticas.
+    </div>
+    <div id="status-badge" class="status-badge">Sistema en Espera</div>
+</nav>
+
+<div class="main-container">
+
+    <div class="upload-section">
+        <div class="upload-info">
+            <h1>Nueva Clasificación</h1>
+            <p>Sube una carpeta con cortes MRI para ser analizados.</p>
+        </div>
+        
+        <form id="form" onsubmit="enviarCarpeta(event)">
+            <div class="file-upload-wrapper">
+                <button type="button" class="btn-upload">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    Seleccionar Carpeta y Analizar
+                </button>
+                <input type="file" id="folder" name="folder" webkitdirectory directory multiple required onchange="this.form.dispatchEvent(new Event('submit', {cancelable: true}))">
+            </div>
+        </form>
+    </div>
+
+    <div class="dashboard-grid">
+        
+        <div class="container-card">
+            <div class="card-header">Resultados del Modelo</div>
+            <div class="card-body">
+                <div class="diagnosis-box">
+                    <div class="diagnosis-label">Predicción Principal</div>
+                    <div id="tumor">---</div>
+                </div>
+                
+                <div style="margin-bottom:10px; font-weight:600; font-size:0.9rem;">Probabilidades por clase:</div>
+                <div id="confidences">
+                    <div style="text-align:center; color:#cbd5e1; padding:20px;">Esperando datos...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-card">
+            <div class="card-header">
+                <span>Análisis Axial (2D)</span>
+                <svg width="18" height="18" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+            </div>
+            <div class="card-body" style="background: #f8fafc; padding: 0;">
+                <div style="padding: 1.5rem; display: flex; flex-direction: column; height: 100%;">
+                    <div class="img-viewer">
+                        <span id="placeholder-2d" class="placeholder">Visualización de corte</span>
+                        <img id="img2d">
+                    </div>
+                    <div class="slider-controls">
+                        <span style="font-size:0.8rem; color:#64748b; font-weight:600;">NAVEGACIÓN</span>
+                        <input type="range" id="sliceSlider" min="0" max="0" value="0" oninput="cambiarSlice()">
+                        <span id="sliceNumber" class="slice-counter">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-card">
+            <div class="card-header">
+                <span>Reconstrucción Volumétrica</span>
+                <svg width="18" height="18" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+            </div>
+            <div class="card-body" style="background: #0f172a; padding: 10px;">
+                <div class="viewer-3d">
+                    <span id="placeholder-3d" class="placeholder" style="color:#64748b;">Modelo 3D</span>
+                    <img id="img3d">
+                </div>
+                <div style="text-align:center; margin-top:10px; font-size:0.75rem; color:#64748b;">
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>
