@@ -19,7 +19,7 @@ Descripción: Contiene 3064 imágenes de resonancia magnética ponderadas en T1 
 
 Nombre: Brain Tumor MRI Dataset de Kaggle
 
-Enlace: [https://figshare.com/articles/dataset/brain_tumor_dataset/1512427](https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset)
+Enlace: https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset
 
 Nota: Para este dataset se utilizó la clase de notumor y la mitad de las demás clases.
 
@@ -27,15 +27,15 @@ Imágenes usadas exactamente:
 https://drive.google.com/drive/folders/1Jo5bjOuRnje_Eb4fExw0dwDru1TTOGjj
 
 -> Estructura del Proyecto
-El código está organizado de la siguiente manera
+El código está organizado de la siguiente manera:
+
 ├── app.py             
 ├── pipeline.py          
 ├── requirements.txt     
 ├── templates/
 │   └── pagina.html     
 │── segmentation_model_nopr.pth 
-│── classifier_tumor.h5        
-└── temp_upload/      
+│── classifier_tumor.h5            
 
 -> Modelos implementados con IA
 La segmentación con UNet donde el modelo recibe imágenes de 256x256 y genera una máscara binaria. Y la clasificación con CNN, donde se utiliza una red neuronal convolucional para categorizar el tipo de tumor existente.
