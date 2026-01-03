@@ -2,19 +2,18 @@ import os
 import numpy as np
 import h5py
 import cv2
+import torch
+import torch.nn as nn
 from skimage.measure import marching_cubes
 from tensorflow.keras.models import load_model
 
+SEG_MODEL_PATH = "segmentation_model_nopr.pth"
+CLS_MODEL_PATH = "classifier_tumor.h5"
 
-MODEL_PATH = "classifier_tumor.h5" 
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-print(f"Cargando modelo desde: {MODEL_PATH}...")
-try:
-    model = load_model(MODEL_PATH)
-    print("Modelo cargado exitosamente.")
-except Exception as e:
-    print(f"Error al cargar el modelo: {e}")
-    model = None
+print("Cargando modelo de clasificación...")
+cls_model = load_model(CLS_MODEL_PATH)
 
 LABELS_MAP = {
     0: "Normal",
@@ -23,86 +22,97 @@ LABELS_MAP = {
     3: "Pituitary"
 }
 
-def load_mat(filepath):
-    try:
-        with h5py.File(filepath, "r") as mat:
-            cjdata = mat["cjdata"]
-            image = np.array(cjdata["image"])
-            tumorMask = np.array(cjdata["tumorMask"])
-            return image, tumorMask
-    except Exception as e:
-        print(f"Error leyendo {filepath}: {e}")
-        return None, None
+# MODELO DE SEGMENTACIÓN
+class UNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.enc1 = self.block(3, 16)
+        self.enc2 = self.block(16, 32)
+        self.pool = nn.MaxPool2d(2)
+        self.dec1 = self.block(32, 16)
+        self.out = nn.Conv2d(16, 1, 1)
 
-def preprocesar_imagen(img):
-    # 1. Normalizar
-    img_norm = (img - img.min()) / (img.max() - img.min())
-    
-    # 2. Redimensionar
-    img_resized = cv2.resize(img_norm, (128, 128)) 
-    
-    # 3. Dar formato de batch (1, Alto, Ancho, Canales)
-    img_final = np.expand_dims(img_resized, axis=-1)    
-    return np.expand_dims(img_final, axis=0)
+    def block(self, in_c, out_c):
+        return nn.Sequential(
+            nn.Conv2d(in_c, out_c, 3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(out_c, out_c, 3, padding=1),
+            nn.ReLU(),
+        )
 
-def run_pipeline(carpeta_raiz):
-    print("Procesando carpeta:", carpeta_raiz)
-    
-    archivos = []
-    for root, _, files in os.walk(carpeta_raiz):
-        for f in files:
-            if f.lower().endswith(".mat"):
-                archivos.append(os.path.join(root, f))
+    def forward(self, x):
+        e1 = self.enc1(x)
+        e2 = self.enc2(self.pool(e1))
+        d1 = torch.nn.functional.interpolate(
+            e2, scale_factor=2, mode="bilinear", align_corners=False
+        )
+        d1 = self.dec1(d1)
+        return torch.sigmoid(self.out(d1))
 
-    if not archivos:
-        raise Exception("No hay archivos .mat en la carpeta")
 
-    volumen_slices = []
-    masks_slices = []
-    predicciones = []
+print("Cargando modelo de segmentación...")
+seg_model = UNet().to(DEVICE)
+seg_model.load_state_dict(torch.load(SEG_MODEL_PATH, map_location=DEVICE))
+seg_model.eval()
 
-    for archivo in sorted(archivos):
-        img, mask = load_mat(archivo)
-        if img is None: continue
-        
-        volumen_slices.append(img)
-        masks_slices.append(mask)
+def load_mat(path):
+    with h5py.File(path, "r") as f:
+        img = np.array(f["cjdata"]["image"])
+    return img
 
-        # PREDICCIÓN
-        if model:
-            img_prep = preprocesar_imagen(img)
-            pred = model.predict(img_prep, verbose=0)
-            clase = np.argmax(pred)
-            predicciones.append(clase)
-        else:
-            predicciones.append(0)
+def preprocess_seg(img):
+    img = (img - img.min()) / (img.max() - img.min())
+    img = cv2.resize(img, (256, 256))
+    img = np.stack([img]*3, axis=0)  # (3,H,W)
+    return torch.tensor(img, dtype=torch.float32).unsqueeze(0)
 
-    if not volumen_slices:
-        raise Exception("Error al cargar imágenes")
+def preprocess_cls(img):
+    img = cv2.resize(img, (128, 128))
+    img = img / img.max()
+    return img.reshape(1, 128, 128, 1)
 
-    # Unificar tamaños para visualización 3D
-    target_shape = volumen_slices[0].shape
-    if len(set(s.shape for s in volumen_slices)) > 1:
-        volumen_slices = [cv2.resize(im, target_shape[::-1]) for im in volumen_slices]
-        masks_slices = [cv2.resize(mk, target_shape[::-1]) for mk in masks_slices]
+def run_pipeline(folder):
+    files = sorted([
+        os.path.join(r, f)
+        for r, _, fs in os.walk(folder)
+        for f in fs if f.endswith(".mat")
+    ])
 
-    volume = np.stack(volumen_slices, axis=0)
-    mask_volume = np.stack(masks_slices, axis=0)
+    if not files:
+        raise Exception("No se encontraron archivos .mat")
 
-    # Calcular resultado final (Votación mayoritaria)
-    total = len(predicciones)
-    if total > 0:
-        confidences = {name: predicciones.count(k)/total for k, name in LABELS_MAP.items()}
-        idx_ganador = max(set(predicciones), key=predicciones.count)
-        label_final = LABELS_MAP.get(idx_ganador, "Desconocido")
-    else:
-        label_final = "Error"
-        confidences = {}
+    volume = []
+    masks = []
+    preds = []
 
-    # Generar malla 3D
-    try:
-        verts, faces, _, _ = marching_cubes(mask_volume, level=0.5)
-    except:
-        verts, faces = [], []
+    for f in files:
+        img = load_mat(f)
+        volume.append(img)
 
-    return volume, mask_volume, verts, faces, label_final, confidences
+        # --- SEGMENTACIÓN ---
+        with torch.no_grad():
+            t = preprocess_seg(img).to(DEVICE)
+            mask = seg_model(t)[0, 0].cpu().numpy()
+            masks.append(mask)
+
+        # --- CLASIFICACIÓN ---
+        p = cls_model.predict(preprocess_cls(img), verbose=0)
+        preds.append(np.argmax(p))
+
+    volume = np.stack(volume)
+    masks = np.stack(masks)
+
+    # Etiqueta final
+    label_idx = max(set(preds), key=preds.count)
+    label = LABELS_MAP[label_idx]
+
+    # Confianzas
+    confidences = {
+        LABELS_MAP[k]: preds.count(k)/len(preds)
+        for k in LABELS_MAP
+    }
+
+    # 3D
+    verts, faces, _, _ = marching_cubes(masks, level=0.5)
+
+    return volume, masks, verts, faces, label, confidences
