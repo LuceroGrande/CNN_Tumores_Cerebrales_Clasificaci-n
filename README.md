@@ -2,6 +2,7 @@
 Una página web completa para realizar un análisis automatizado de imágenes de resonancia magnética (MRI) cerebral. El sistema utiliza Deep Learning para clasificar el tipo de tumor y segmentar la región afectada, generando además una reconstrucción 3D del tumor para mejor visualización médica.
 
 -> Características Principales
+
 Hace una clasificación multiclase, debido a que identifica el tipo de tumor entre cuatro categorías, las cuales son meningioma, glioma, pituitary y un cerebro sano.
 
 Realiza una segmentación semántica, donde se utiliza una red UNet para generar máscaras precisas del área tumoral.
@@ -9,6 +10,7 @@ Realiza una segmentación semántica, donde se utiliza una red UNet para generar
 Posteriormente se hacen unas visualizaciones avanzadas como cortes axiales (2D) con superposición del tumor y contornos definidos, además de una reconstrucción volumétrica (3D) del tumor.
 
 -> Dataset
+
 El modelo fue entrenado utilizando el siguiente conjunto de datos de acceso público:
 
 Nombre: Brain Tumor Dataset de Figshare
@@ -27,6 +29,7 @@ Imágenes usadas exactamente:
 https://drive.google.com/drive/folders/1Jo5bjOuRnje_Eb4fExw0dwDru1TTOGjj
 
 -> Estructura del Proyecto
+
 El código está organizado de la siguiente manera:
 
 ├── app.py             
@@ -38,4 +41,5 @@ El código está organizado de la siguiente manera:
 │── classifier_tumor.h5            
 
 -> Modelos implementados con IA
+
 La segmentación con UNet donde el modelo recibe imágenes de 256x256 y genera una máscara binaria. Y la clasificación con CNN, donde se utiliza una red neuronal convolucional para categorizar el tipo de tumor existente.
