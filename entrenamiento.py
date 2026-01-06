@@ -149,7 +149,7 @@ history = model.fit(X_train, y_train, epochs=10, batch_size=32,
 
 # Guardar modelo
 os.makedirs("C:\\Users\\Luce\\Documents\\SEXTO SEMESTRE\\software\\Proyecto_final\\models", exist_ok=True)
-model.save("C:\\Users\\Luce\\Documents\\SEXTO SEMESTRE\\software\\Proyecto_final\\models\\tumor_classifier_final.h5")
+model.save("C:\\Users\\Luce\\Documents\\SEXTO SEMESTRE\\software\\Proyecto_final\\models\\classifier_tumor.h5")
 
 # 5. EVALUACIÓN Y GRÁFICAS FINALES
 y_pred_proba = model.predict(X_test)
