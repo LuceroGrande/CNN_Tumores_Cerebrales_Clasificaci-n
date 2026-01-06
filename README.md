@@ -25,7 +25,7 @@ Enlace: https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset
 
 Nota: Para este dataset se utilizó la clase de notumor y la mitad de las demás clases.
 
-Imágenes usadas exactamente para el entrenamiento y modelo preentrenado para realizar la clasificación:
+Imágenes usadas exactamente para el entrenamiento:
 https://drive.google.com/drive/folders/1Jo5bjOuRnje_Eb4fExw0dwDru1TTOGjj
 
 -> Estructura del Proyecto
@@ -43,3 +43,5 @@ El código está organizado de la siguiente manera:
 -> Modelos implementados con IA
 
 La segmentación con UNet donde el modelo recibe imágenes de 256x256 y genera una máscara binaria. Y la clasificación con CNN, donde se utiliza una red neuronal convolucional para categorizar el tipo de tumor existente.
+
+Nota: En caso que al descargar el repositorio en un archivo .zip les aparezca que los modelos estan vacios, lo pueden descargar dandole click en el archivo directamente y en descargar o en el link del drive donde estan las imágenes del entreenamiento se encuentran. Unicamente sustituyan esos modelos asi como se muestra en la estructura del proyecto.
