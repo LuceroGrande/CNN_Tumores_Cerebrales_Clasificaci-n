@@ -25,7 +25,7 @@ Enlace: https://www.kaggle.com/datasets/masoudnickparvar/brain-tumor-mri-dataset
 
 Nota: Para este dataset se utilizó la clase de notumor y la mitad de las demás clases.
 
-Imágenes usadas exactamente:
+Imágenes usadas exactamente para el entrenamiento y modelo preentrenado para realizar la clasificación:
 https://drive.google.com/drive/folders/1Jo5bjOuRnje_Eb4fExw0dwDru1TTOGjj
 
 -> Estructura del Proyecto
