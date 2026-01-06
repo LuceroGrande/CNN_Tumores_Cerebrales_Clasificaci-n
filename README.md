@@ -44,4 +44,4 @@ El código está organizado de la siguiente manera:
 
 La segmentación con UNet donde el modelo recibe imágenes de 256x256 y genera una máscara binaria. Y la clasificación con CNN, donde se utiliza una red neuronal convolucional para categorizar el tipo de tumor existente.
 
-Nota: En caso que al descargar el repositorio en un archivo .zip les aparezca que los modelos estan vacios, lo pueden descargar dandole click en el archivo directamente y en descargar o en el link del drive donde estan las imágenes del entreenamiento se encuentran. Unicamente sustituyan esos modelos asi como se muestra en la estructura del proyecto.
+Nota: En caso que al descargar el repositorio en un archivo .zip les aparezca que los modelos estan vacios, lo pueden descargar dandole click en el archivo directamente y en descargar o en el link del drive donde estan las imágenes del entrenamiento se encuentran almacenados. Unicamente sustituyan esos modelos asi como se muestra en la estructura del proyecto.
